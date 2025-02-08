@@ -38,7 +38,7 @@ clicking on the top right is to get the prompt to load the files
 
 
 
-can download the folder loading_mp4_files:  to run with npm start with the dependicies all installed already. 
+can download the folder loading_mp4_files:  to run, use npm install to install dependencies, then npm start.
 
 
 
