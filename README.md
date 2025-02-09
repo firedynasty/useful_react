@@ -42,3 +42,17 @@ can download the folder loading_mp4_files:  to run, use npm install to install d
 
 
 
+Updated:
+
+two folders,
+
+ 01-loading_mp4_files_without
+
+02-loading_mp4_files_working_folder
+
+when you use 02-loading_mp4_files_working_folder, you can load files into src/default_files and it will load files there instead of having to select them yourself. 
+
+
+
+
+

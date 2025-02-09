@@ -4,7 +4,19 @@ import { Card, CardContent, CardHeader, CardTitle } from './components/ui/card';
 import { Button } from './components/ui/button';
 import { Slider } from './components/ui/slider';
 
+// Use require.context to automatically import all files from default_files directory
+const defaultFilesContext = require.context('./default_files', false, /\.(txt|jpg|jpeg|png|mp4)$/);
+const DEFAULT_FILES = Object.fromEntries(
+  defaultFilesContext.keys().map(key => {
+    const filename = key.replace('./', '');
+    const type = filename.endsWith('.txt') ? 'text' : 
+                 filename.match(/\.(jpg|jpeg|png)$/i) ? 'image' : 'video';
+    return [filename, { path: defaultFilesContext(key), type }];
+  })
+);
+
 const MediaReader = () => {
+  const [isInitialized, setIsInitialized] = useState(false);
   const [files, setFiles] = useState({});
   const [currentTextFile, setCurrentTextFile] = useState('');
   const [currentMediaFile, setCurrentMediaFile] = useState('');
@@ -15,7 +27,6 @@ const MediaReader = () => {
   const [currentTime, setCurrentTime] = useState(0);
   const videoRef = useRef(null);
 
-  // ... rest of the component remains the same ...
   const sortedFiles = useMemo(() => {
     const textFiles = [];
     const mediaFiles = [];
@@ -34,9 +45,98 @@ const MediaReader = () => {
     };
   }, [files]);
 
+  const loadDefaultFiles = async () => {
+    try {
+      const newFiles = {};
+
+      for (const [filename, fileInfo] of Object.entries(DEFAULT_FILES)) {
+        const response = await fetch(fileInfo.path);
+        const blob = await response.blob();
+        
+        if (fileInfo.type === 'text') {
+          const text = await blob.text();
+          newFiles[filename] = {
+            type: 'text',
+            content: text
+          };
+        } else if (fileInfo.type === 'image') {
+          const dataUrl = await new Promise((resolve) => {
+            const reader = new FileReader();
+            reader.onload = () => resolve(reader.result);
+            reader.readAsDataURL(blob);
+          });
+          newFiles[filename] = {
+            type: 'image',
+            content: [dataUrl]
+          };
+        } else if (fileInfo.type === 'video') {
+          const dataUrl = await new Promise((resolve) => {
+            const reader = new FileReader();
+            reader.onload = () => resolve(reader.result);
+            reader.readAsDataURL(blob);
+          });
+          newFiles[filename] = {
+            type: 'video',
+            content: [dataUrl]
+          };
+        }
+      }
+
+      setFiles(newFiles);
+
+      // Set initial files
+      const textFiles = Object.entries(newFiles)
+        .filter(([_, file]) => file.type === 'text')
+        .map(([name]) => name)
+        .sort((a, b) => a.localeCompare(b, undefined, { numeric: true }));
+
+      const mediaFiles = Object.entries(newFiles)
+        .filter(([_, file]) => file.type === 'image' || file.type === 'video')
+        .map(([name]) => name)
+        .sort((a, b) => a.localeCompare(b, undefined, { numeric: true }));
+
+      if (textFiles.length > 0) {
+        setCurrentTextFile(textFiles[0]);
+      }
+
+      if (mediaFiles.length > 0) {
+        setCurrentMediaFile(mediaFiles[0]);
+      }
+    } catch (error) {
+      console.error('Error loading default files:', error);
+    } finally {
+      setIsInitialized(true);
+    }
+  };
+
+  // Load default files on component mount
+  useEffect(() => {
+    if (!isInitialized) {
+      loadDefaultFiles();
+    }
+  }, [isInitialized]);
+
+  const resetState = () => {
+    setFiles({});
+    setCurrentTextFile('');
+    setCurrentMediaFile('');
+    setIsPlaying(false);
+    setIsMuted(false);
+    setDuration(0);
+    setCurrentTime(0);
+    if (videoRef.current) {
+      videoRef.current.src = '';
+    }
+  };
+
   const handleFileUpload = async (event) => {
     const fileList = event.target.files;
-    const newFiles = { ...files };
+    if (!fileList.length) return;
+
+    // Reset all state before loading new files
+    resetState();
+    
+    const newFiles = {};
     const fileReadPromises = [];
 
     Array.from(fileList).forEach(file => {
@@ -83,15 +183,17 @@ const MediaReader = () => {
       .map(([name]) => name)
       .sort((a, b) => a.localeCompare(b, undefined, { numeric: true }));
 
-    if (textFiles.length > 0 && !currentTextFile) {
+    // Set initial files after reset
+    if (textFiles.length > 0) {
       setCurrentTextFile(textFiles[0]);
-      setCurrentPage(0);
     }
 
-    if (mediaFiles.length > 0 && !currentMediaFile) {
+    if (mediaFiles.length > 0) {
       setCurrentMediaFile(mediaFiles[0]);
     }
   };
+
+  // ... rest of the component code remains the same ...
 
   const handleVideoTimeUpdate = (e) => {
     setCurrentTime(e.target.currentTime);
@@ -211,7 +313,6 @@ const MediaReader = () => {
     const remainingSeconds = Math.floor(seconds % 60);
     return `${minutes}:${remainingSeconds.toString().padStart(2, '0')}`;
   };
-
   return (
     <div className="h-screen flex flex-col">
       <div className="flex items-center justify-end p-1 gap-2 text-xs text-gray-500">
@@ -225,11 +326,11 @@ const MediaReader = () => {
             className="hidden"
             onChange={handleFileUpload}
           />
-          />
         </label>
       </div>
 
-      <div className="flex-1 flex gap-4 px-4 pb-4 min-h-0">
+
+    <div className="flex-1 flex gap-4 px-4 pb-4 min-h-0">
         <Card className="flex-1 flex flex-col">
           <CardHeader className="py-2">
             <CardTitle className="text-sm flex justify-between items-center">
