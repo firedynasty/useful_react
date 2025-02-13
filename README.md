@@ -46,11 +46,21 @@ Updated:
 
 two folders,
 
- 01-loading_mp4_files_without
+**02-loading_mp4_files_working_folder_right_left**: this folder, right and left panes , one pane for text the other is for images / movies
 
-02-loading_mp4_files_working_folder
+**03-loading_mp4_files** : the panes are switched
 
-when you use 02-loading_mp4_files_working_folder, you can load files into src/default_files and it will load files there instead of having to select them yourself. 
+
+
+they can work simultaneously
+
+
+
+find your ip address and can access with "npm start" with ip address:3000 and/or ip address:3001
+
+
+
+
 
 
 
