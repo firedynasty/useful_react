@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useCallback, useMemo, useRef } from 'react';
-import { Upload, ArrowRight, ArrowLeft, Play, Pause, Volume2, VolumeX } from 'lucide-react';
+import { Upload, ArrowRight, ArrowLeft, Play, Pause, Volume2, VolumeX, Trash2 } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from './components/ui/card';
 import { Button } from './components/ui/button';
 import { Slider } from './components/ui/slider';
@@ -16,6 +16,7 @@ const DEFAULT_FILES = Object.fromEntries(
 );
 
 const MediaReader = () => {
+  // State declarations
   const [isInitialized, setIsInitialized] = useState(false);
   const [files, setFiles] = useState({});
   const [currentTextFile, setCurrentTextFile] = useState('');
@@ -27,6 +28,7 @@ const MediaReader = () => {
   const [currentTime, setCurrentTime] = useState(0);
   const videoRef = useRef(null);
 
+  // Sorted files memo
   const sortedFiles = useMemo(() => {
     const textFiles = [];
     const mediaFiles = [];
@@ -45,6 +47,92 @@ const MediaReader = () => {
     };
   }, [files]);
 
+  // Navigation functions
+  const goToNextMedia = useCallback(() => {
+    const currentIndex = sortedFiles.media.indexOf(currentMediaFile);
+    if (currentIndex === -1 || currentIndex === sortedFiles.media.length - 1) {
+      setCurrentMediaFile(sortedFiles.media[0]);
+    } else {
+      setCurrentMediaFile(sortedFiles.media[currentIndex + 1]);
+    }
+    setIsPlaying(false);
+  }, [currentMediaFile, sortedFiles.media]);
+
+  const goToPreviousMedia = useCallback(() => {
+    const currentIndex = sortedFiles.media.indexOf(currentMediaFile);
+    if (currentIndex <= 0) {
+      setCurrentMediaFile(sortedFiles.media[sortedFiles.media.length - 1]);
+    } else {
+      setCurrentMediaFile(sortedFiles.media[currentIndex - 1]);
+    }
+    setIsPlaying(false);
+  }, [currentMediaFile, sortedFiles.media]);
+
+  const goToNextText = useCallback(() => {
+    const currentIndex = sortedFiles.text.indexOf(currentTextFile);
+    if (currentIndex === -1 || currentIndex === sortedFiles.text.length - 1) {
+      setCurrentTextFile(sortedFiles.text[0]);
+    } else {
+      setCurrentTextFile(sortedFiles.text[currentIndex + 1]);
+    }
+    setCurrentPage(0);
+  }, [currentTextFile, sortedFiles.text]);
+
+  const goToPreviousText = useCallback(() => {
+    const currentIndex = sortedFiles.text.indexOf(currentTextFile);
+    if (currentIndex <= 0) {
+      setCurrentTextFile(sortedFiles.text[sortedFiles.text.length - 1]);
+    } else {
+      setCurrentTextFile(sortedFiles.text[currentIndex - 1]);
+    }
+    setCurrentPage(0);
+  }, [currentTextFile, sortedFiles.text]);
+
+  // Video control functions
+  const handleVideoTimeUpdate = (e) => {
+    setCurrentTime(e.target.currentTime);
+  };
+
+  const handleVideoDurationChange = (e) => {
+    setDuration(e.target.duration);
+  };
+
+  const handleVideoEnded = () => {
+    setIsPlaying(false);
+  };
+
+  const togglePlay = () => {
+    if (videoRef.current) {
+      if (isPlaying) {
+        videoRef.current.pause();
+      } else {
+        videoRef.current.play();
+      }
+      setIsPlaying(!isPlaying);
+    }
+  };
+
+  const toggleMute = () => {
+    if (videoRef.current) {
+      videoRef.current.muted = !videoRef.current.muted;
+      setIsMuted(!isMuted);
+    }
+  };
+
+  const handleSeek = (value) => {
+    if (videoRef.current) {
+      videoRef.current.currentTime = value;
+      setCurrentTime(value);
+    }
+  };
+
+  const formatTime = (seconds) => {
+    const minutes = Math.floor(seconds / 60);
+    const remainingSeconds = Math.floor(seconds % 60);
+    return `${minutes}:${remainingSeconds.toString().padStart(2, '0')}`;
+  };
+
+  // File handling functions
   const loadDefaultFiles = async () => {
     try {
       const newFiles = {};
@@ -84,7 +172,6 @@ const MediaReader = () => {
 
       setFiles(newFiles);
 
-      // Set initial files
       const textFiles = Object.entries(newFiles)
         .filter(([_, file]) => file.type === 'text')
         .map(([name]) => name)
@@ -109,13 +196,6 @@ const MediaReader = () => {
     }
   };
 
-  // Load default files on component mount
-  useEffect(() => {
-    if (!isInitialized) {
-      loadDefaultFiles();
-    }
-  }, [isInitialized]);
-
   const resetState = () => {
     setFiles({});
     setCurrentTextFile('');
@@ -132,11 +212,8 @@ const MediaReader = () => {
   const handleFileUpload = async (event) => {
     const fileList = event.target.files;
     if (!fileList.length) return;
-
-    // Reset all state before loading new files
-    resetState();
     
-    const newFiles = {};
+    const newFiles = { ...files }; // Preserve existing files
     const fileReadPromises = [];
 
     Array.from(fileList).forEach(file => {
@@ -183,95 +260,21 @@ const MediaReader = () => {
       .map(([name]) => name)
       .sort((a, b) => a.localeCompare(b, undefined, { numeric: true }));
 
-    // Set initial files after reset
-    if (textFiles.length > 0) {
+    if (!currentTextFile && textFiles.length > 0) {
       setCurrentTextFile(textFiles[0]);
     }
 
-    if (mediaFiles.length > 0) {
+    if (!currentMediaFile && mediaFiles.length > 0) {
       setCurrentMediaFile(mediaFiles[0]);
     }
   };
 
-  // ... rest of the component code remains the same ...
-
-  const handleVideoTimeUpdate = (e) => {
-    setCurrentTime(e.target.currentTime);
+  const handleClearFiles = () => {
+    resetState();
+    setIsInitialized(false);
   };
 
-  const handleVideoDurationChange = (e) => {
-    setDuration(e.target.duration);
-  };
-
-  const handleVideoEnded = () => {
-    setIsPlaying(false);
-  };
-
-  const togglePlay = () => {
-    if (videoRef.current) {
-      if (isPlaying) {
-        videoRef.current.pause();
-      } else {
-        videoRef.current.play();
-      }
-      setIsPlaying(!isPlaying);
-    }
-  };
-
-  const toggleMute = () => {
-    if (videoRef.current) {
-      videoRef.current.muted = !videoRef.current.muted;
-      setIsMuted(!isMuted);
-    }
-  };
-
-  const handleSeek = (value) => {
-    if (videoRef.current) {
-      videoRef.current.currentTime = value;
-      setCurrentTime(value);
-    }
-  };
-
-  const goToNextText = useCallback(() => {
-    const currentIndex = sortedFiles.text.indexOf(currentTextFile);
-    if (currentIndex === -1 || currentIndex === sortedFiles.text.length - 1) {
-      setCurrentTextFile(sortedFiles.text[0]);
-    } else {
-      setCurrentTextFile(sortedFiles.text[currentIndex + 1]);
-    }
-    setCurrentPage(0);
-  }, [currentTextFile, sortedFiles.text]);
-
-  const goToPreviousText = useCallback(() => {
-    const currentIndex = sortedFiles.text.indexOf(currentTextFile);
-    if (currentIndex <= 0) {
-      setCurrentTextFile(sortedFiles.text[sortedFiles.text.length - 1]);
-    } else {
-      setCurrentTextFile(sortedFiles.text[currentIndex - 1]);
-    }
-    setCurrentPage(0);
-  }, [currentTextFile, sortedFiles.text]);
-
-  const goToNextMedia = useCallback(() => {
-    const currentIndex = sortedFiles.media.indexOf(currentMediaFile);
-    if (currentIndex === -1 || currentIndex === sortedFiles.media.length - 1) {
-      setCurrentMediaFile(sortedFiles.media[0]);
-    } else {
-      setCurrentMediaFile(sortedFiles.media[currentIndex + 1]);
-    }
-    setIsPlaying(false);
-  }, [currentMediaFile, sortedFiles.media]);
-
-  const goToPreviousMedia = useCallback(() => {
-    const currentIndex = sortedFiles.media.indexOf(currentMediaFile);
-    if (currentIndex <= 0) {
-      setCurrentMediaFile(sortedFiles.media[sortedFiles.media.length - 1]);
-    } else {
-      setCurrentMediaFile(sortedFiles.media[currentIndex - 1]);
-    }
-    setIsPlaying(false);
-  }, [currentMediaFile, sortedFiles.media]);
-
+  // Keyboard handler
   const handleKeyPress = useCallback((event) => {
     if (Object.keys(files).length === 0) return;
     
@@ -303,20 +306,30 @@ const MediaReader = () => {
     }
   }, [files, goToNextText, goToPreviousText, goToNextMedia, goToPreviousMedia, currentMediaFile, togglePlay]);
 
+  // Effects
+  useEffect(() => {
+    if (!isInitialized) {
+      loadDefaultFiles();
+    }
+  }, [isInitialized]);
+
   useEffect(() => {
     window.addEventListener('keydown', handleKeyPress);
     return () => window.removeEventListener('keydown', handleKeyPress);
   }, [handleKeyPress]);
 
-  const formatTime = (seconds) => {
-    const minutes = Math.floor(seconds / 60);
-    const remainingSeconds = Math.floor(seconds % 60);
-    return `${minutes}:${remainingSeconds.toString().padStart(2, '0')}`;
-  };
   return (
-<div className="h-screen flex flex-col">
+    <div className="h-screen flex flex-col">
       <div className="flex items-center justify-end p-1 gap-2 text-xs text-gray-500">
         <span className="text-[10px]">←→ text | ↑↓ media | space play</span>
+        <Button
+          variant="ghost"
+          size="icon"
+          className="h-6 w-6 hover:bg-gray-100 rounded-full"
+          onClick={handleClearFiles}
+        >
+          <Trash2 className="w-5 h-5 text-gray-500" />
+        </Button>
         <label className="cursor-pointer hover:bg-gray-100 p-1 rounded-full">
           <Upload className="w-5 h-5 text-gray-500" />
           <input 
@@ -329,6 +342,7 @@ const MediaReader = () => {
         </label>
       </div>
 
+  
       <div className="flex-1 flex flex-col md:flex-row gap-4 px-4 pb-4 min-h-0">
         {/* Media Files Card - Now First */}
         <Card className="flex-1 flex flex-col min-h-[50vh] md:min-h-0">

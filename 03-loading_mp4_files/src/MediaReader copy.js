@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useCallback, useMemo, useRef } from 'react';
-import { Upload, ArrowRight, ArrowLeft, Play, Pause, Volume2, VolumeX } from 'lucide-react';
+import { Upload, ArrowRight, ArrowLeft, Play, Pause, Volume2, VolumeX, Trash2 } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from './components/ui/card';
 import { Button } from './components/ui/button';
 import { Slider } from './components/ui/slider';
@@ -132,11 +132,8 @@ const MediaReader = () => {
   const handleFileUpload = async (event) => {
     const fileList = event.target.files;
     if (!fileList.length) return;
-
-    // Reset all state before loading new files
-    resetState();
     
-    const newFiles = {};
+    const newFiles = { ...files }; // Preserve existing files
     const fileReadPromises = [];
 
     Array.from(fileList).forEach(file => {
@@ -183,18 +180,22 @@ const MediaReader = () => {
       .map(([name]) => name)
       .sort((a, b) => a.localeCompare(b, undefined, { numeric: true }));
 
-    // Set initial files after reset
-    if (textFiles.length > 0) {
+    // Only set initial files if none are currently selected
+    if (!currentTextFile && textFiles.length > 0) {
       setCurrentTextFile(textFiles[0]);
     }
 
-    if (mediaFiles.length > 0) {
+    if (!currentMediaFile && mediaFiles.length > 0) {
       setCurrentMediaFile(mediaFiles[0]);
     }
   };
 
-  // ... rest of the component code remains the same ...
+  const handleClearFiles = () => {
+    resetState();
+    setIsInitialized(false); // This will trigger reloading of default files
+  };
 
+  // Video control functions
   const handleVideoTimeUpdate = (e) => {
     setCurrentTime(e.target.currentTime);
   };
@@ -232,26 +233,13 @@ const MediaReader = () => {
     }
   };
 
-  const goToNextText = useCallback(() => {
-    const currentIndex = sortedFiles.text.indexOf(currentTextFile);
-    if (currentIndex === -1 || currentIndex === sortedFiles.text.length - 1) {
-      setCurrentTextFile(sortedFiles.text[0]);
-    } else {
-      setCurrentTextFile(sortedFiles.text[currentIndex + 1]);
-    }
-    setCurrentPage(0);
-  }, [currentTextFile, sortedFiles.text]);
+  const formatTime = (seconds) => {
+    const minutes = Math.floor(seconds / 60);
+    const remainingSeconds = Math.floor(seconds % 60);
+    return `${minutes}:${remainingSeconds.toString().padStart(2, '0')}`;
+  };
 
-  const goToPreviousText = useCallback(() => {
-    const currentIndex = sortedFiles.text.indexOf(currentTextFile);
-    if (currentIndex <= 0) {
-      setCurrentTextFile(sortedFiles.text[sortedFiles.text.length - 1]);
-    } else {
-      setCurrentTextFile(sortedFiles.text[currentIndex - 1]);
-    }
-    setCurrentPage(0);
-  }, [currentTextFile, sortedFiles.text]);
-
+  // Navigation functions
   const goToNextMedia = useCallback(() => {
     const currentIndex = sortedFiles.media.indexOf(currentMediaFile);
     if (currentIndex === -1 || currentIndex === sortedFiles.media.length - 1) {
@@ -272,51 +260,38 @@ const MediaReader = () => {
     setIsPlaying(false);
   }, [currentMediaFile, sortedFiles.media]);
 
-  const handleKeyPress = useCallback((event) => {
-    if (Object.keys(files).length === 0) return;
-    
-    switch(event.key) {
-      case 'ArrowRight':
-        event.preventDefault();
-        goToNextText();
-        break;
-      case 'ArrowLeft':
-        event.preventDefault();
-        goToPreviousText();
-        break;
-      case 'ArrowDown':
-        event.preventDefault();
-        goToNextMedia();
-        break;
-      case 'ArrowUp':
-        event.preventDefault();
-        goToPreviousMedia();
-        break;
-      case ' ':  // Spacebar
-        event.preventDefault();  // Prevent page scroll
-        if (files[currentMediaFile]?.type === 'video') {
-          togglePlay();
-        }
-        break;
-      default:
-        break;
+  const goToNextText = useCallback(() => {
+    const currentIndex = sortedFiles.text.indexOf(currentTextFile);
+    if (currentIndex === -1 || currentIndex === sortedFiles.text.length - 1) {
+      setCurrentTextFile(sortedFiles.text[0]);
+    } else {
+      setCurrentTextFile(sortedFiles.text[currentIndex + 1]);
     }
-  }, [files, goToNextText, goToPreviousText, goToNextMedia, goToPreviousMedia, currentMediaFile, togglePlay]);
+    setCurrentPage(0);
+  }, [currentTextFile, sortedFiles.text]);
 
-  useEffect(() => {
-    window.addEventListener('keydown', handleKeyPress);
-    return () => window.removeEventListener('keydown', handleKeyPress);
-  }, [handleKeyPress]);
+  const goToPreviousText = useCallback(() => {
+    const currentIndex = sortedFiles.text.indexOf(currentTextFile);
+    if (currentIndex <= 0) {
+      setCurrentTextFile(sortedFiles.text[sortedFiles.text.length - 1]);
+    } else {
+      setCurrentTextFile(sortedFiles.text[currentIndex - 1]);
+    }
+    setCurrentPage(0);
+  }, [currentTextFile, sortedFiles.text]);
 
-  const formatTime = (seconds) => {
-    const minutes = Math.floor(seconds / 60);
-    const remainingSeconds = Math.floor(seconds % 60);
-    return `${minutes}:${remainingSeconds.toString().padStart(2, '0')}`;
-  };
   return (
     <div className="h-screen flex flex-col">
       <div className="flex items-center justify-end p-1 gap-2 text-xs text-gray-500">
         <span className="text-[10px]">←→ text | ↑↓ media | space play</span>
+        <Button
+          variant="ghost"
+          size="icon"
+          className="h-6 w-6 hover:bg-gray-100 rounded-full"
+          onClick={handleClearFiles}
+        >
+          <Trash2 className="w-5 h-5 text-gray-500" />
+        </Button>
         <label className="cursor-pointer hover:bg-gray-100 p-1 rounded-full">
           <Upload className="w-5 h-5 text-gray-500" />
           <input 
@@ -330,64 +305,8 @@ const MediaReader = () => {
       </div>
 
 
-    <div className="flex-1 flex flex-col md:flex-row gap-4 px-4 pb-4 min-h-0">
-        <Card className="flex-1 flex flex-col">
-          <CardHeader className="py-2">
-            <CardTitle className="text-sm flex justify-between items-center">
-              Text Files
-              <span className="text-xs text-gray-500">{sortedFiles.text.length} files</span>
-            </CardTitle>
-          </CardHeader>
-          <CardContent className="flex-1 flex flex-col min-h-0 p-2">
-            {sortedFiles.text.length > 0 ? (
-              <>
-                <div className="mb-2 flex items-center gap-2">
-                  <Button
-                    variant="outline"
-                    onClick={goToPreviousText}
-                    disabled={!currentTextFile || sortedFiles.text.indexOf(currentTextFile) === 0}
-                    size="icon"
-                    className="h-8 w-8"
-                  >
-                    <ArrowLeft className="w-4 h-4" />
-                  </Button>
-                  
-                  <select 
-                    value={currentTextFile}
-                    onChange={(e) => {
-                      setCurrentTextFile(e.target.value);
-                      setCurrentPage(0);
-                    }}
-                    className="flex-grow p-1 text-sm border rounded-md"
-                  >
-                    {sortedFiles.text.map(fileName => (
-                      <option key={fileName} value={fileName}>{fileName}</option>
-                    ))}
-                  </select>
-
-                  <Button
-                    variant="outline"
-                    onClick={goToNextText}
-                    disabled={!currentTextFile || sortedFiles.text.indexOf(currentTextFile) === sortedFiles.text.length - 1}
-                    size="icon"
-                    className="h-8 w-8"
-                  >
-                    <ArrowRight className="w-4 h-4" />
-                  </Button>
-                </div>
-
-                {currentTextFile && (
-                  <div className="prose max-w-none whitespace-pre-wrap overflow-y-auto flex-1">
-                    {files[currentTextFile].content}
-                  </div>
-                )}
-              </>
-            ) : (
-              <div className="text-center text-gray-500 text-sm">No text files uploaded</div>
-            )}
-          </CardContent>
-        </Card>
-
+      <div className="flex-1 flex flex-col md:flex-row gap-4 px-4 pb-4 min-h-0">
+        {/* Media Files Card - Now First */}
         <Card className="flex-1 flex flex-col min-h-[50vh] md:min-h-0">
           <CardHeader className="py-2">
             <CardTitle className="text-sm flex justify-between items-center">
@@ -500,6 +419,64 @@ const MediaReader = () => {
               </>
             ) : (
               <div className="text-center text-gray-500 text-sm">No media files uploaded</div>
+            )}
+          </CardContent>
+        </Card>
+
+        {/* Text Files Card - Now Second */}
+        <Card className="flex-1 flex flex-col min-h-[50vh] md:min-h-0">
+          <CardHeader className="py-2">
+            <CardTitle className="text-sm flex justify-between items-center">
+              Text Files
+              <span className="text-xs text-gray-500">{sortedFiles.text.length} files</span>
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="flex-1 flex flex-col min-h-0 p-2">
+            {sortedFiles.text.length > 0 ? (
+              <>
+                <div className="mb-2 flex items-center gap-2">
+                  <Button
+                    variant="outline"
+                    onClick={goToPreviousText}
+                    disabled={!currentTextFile || sortedFiles.text.indexOf(currentTextFile) === 0}
+                    size="icon"
+                    className="h-8 w-8"
+                  >
+                    <ArrowLeft className="w-4 h-4" />
+                  </Button>
+                  
+                  <select 
+                    value={currentTextFile}
+                    onChange={(e) => {
+                      setCurrentTextFile(e.target.value);
+                      setCurrentPage(0);
+                    }}
+                    className="flex-grow p-1 text-sm border rounded-md"
+                  >
+                    {sortedFiles.text.map(fileName => (
+                      <option key={fileName} value={fileName}>{fileName}</option>
+                    ))}
+                  </select>
+
+                  <Button
+                    variant="outline"
+                    onClick={goToNextText}
+                    disabled={!currentTextFile || sortedFiles.text.indexOf(currentTextFile) === sortedFiles.text.length - 1}
+                    size="icon"
+                    className="h-8 w-8"
+                  >
+                    <ArrowRight className="w-4 h-4" />
+                  </Button>
+                </div>
+
+                {currentTextFile && (
+                  <div className="prose max-w-none whitespace-pre-wrap overflow-y-auto flex-1">
+                    {files[currentTextFile].content}
+                  </div>
+                )}
+              </>
+            ) : (
+              <div className="text-center text-gray-500 text-sm">No text files uploaded</div>
             )}
           </CardContent>
         </Card>
