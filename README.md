@@ -60,9 +60,87 @@ find your ip address and can access with "npm start" with ip address:3000 and/or
 
 
 
+ [04-textbox_websocket_display](04-textbox_websocket_display)  :
+
+in this folder you can connect two computers together on the same wifi, using node.
+
+first use npm start, then use node server.js in another window
+
+when you click load text the text shows up in the bottom pane on your phone or other device.  
+
+Whichever device clicked "load text" last is what the text will show in the bottom pane. 
 
 
 
+# Text Display WebSocket App
 
+A React application that enables real-time text sharing between multiple devices on the same network using WebSocket communication. (in folder 04-textbox_websocket_display)
 
+## Features
 
+- Real-time text synchronization across devices
+- Copy to clipboard functionality with visual feedback
+- Connection status indicator
+- Automatic reconnection on connection loss
+- Works on any device on the same local network
+
+## Prerequisites
+
+- Node.js installed on your computer
+- npm (Node Package Manager)
+- Two or more devices connected to the same WiFi network
+
+## Setup & Running
+
+1. Start the React development server:
+```bash
+npm start
+```
+
+2. Open a new terminal window and start the WebSocket server:
+```bash
+node server.js
+```
+
+## Accessing the App
+
+### On Your Computer
+- Open your browser and go to: `http://localhost:3000`
+
+### On Other Devices (Phone, Tablet, Another Computer)
+1. Find your computer's IP address:
+   - On Windows: Open CMD and type `ipconfig`
+   - On Mac/Linux: Open Terminal and type `ifconfig` or `ip addr`
+2. On the other device, open a browser and go to: `http://[YOUR_COMPUTER_IP]:3000`
+   - Replace [YOUR_COMPUTER_IP] with your computer's actual IP address
+   - Example: `http://192.168.1.100:3000`
+
+## How to Use
+
+1. Enter text in the top text box on any connected device
+2. Click "Load Text" to send the text
+3. The text will appear in the bottom pane of all connected devices
+4. The most recently loaded text will be displayed on all devices
+5. Use the "Copy to Clipboard" button to copy the displayed text
+
+## Technical Details
+
+- Frontend: React with Tailwind CSS
+- Backend: Node.js with Express
+- Real-time Communication: WebSocket (ws package)
+- Port Usage:
+  - React development server: Port 3000
+  - WebSocket server: Port 3001
+
+## Troubleshooting
+
+- If devices can't connect, ensure they're on the same WiFi network
+- Check if your firewall is blocking ports 3000 or 3001
+- Verify you're using the correct IP address for your computer
+- Connection status is shown in the top-right corner of the app
+
+## Files
+
+- `server.js`: WebSocket server implementation
+- `TextReader.js`: Main React component
+- `App.js`: Root React component
