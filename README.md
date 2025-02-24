@@ -158,3 +158,9 @@ A simple web application for instantly sharing text and images between devices o
 - Live connection status indicator
 - Copy shared text to clipboard with one click
 - Works on desktop and mobile browsers
+
+
+
+# 07-realtime_text_share_websocket
+
+Update: This content sharing app allows real-time synchronization of text and images across multiple devices through WebSocket connections. When content is shared from one device, it's instantly broadcasted to all other connected clients, with a feature that prompts users to copy text to their clipboard when returning to the app.
