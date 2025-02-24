@@ -144,3 +144,17 @@ node server.js
 - `server.js`: WebSocket server implementation
 - `TextReader.js`: Main React component
 - `App.js`: Root React component
+
+
+
+# [05-image_websocket_display](05-image_websocket_display) :
+
+# Real-Time Content Sharing App
+
+A simple web application for instantly sharing text and images between devices on the same network.
+
+## Features
+- Share text and images in real-time across devices
+- Live connection status indicator
+- Copy shared text to clipboard with one click
+- Works on desktop and mobile browsers

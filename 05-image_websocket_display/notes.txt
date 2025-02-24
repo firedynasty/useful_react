@@ -1,0 +1,19 @@
+Prompt: great, this works, for shared content can you maximize the image window? pehaps make the headers smaller font and buttons smaller font?
+
+I'll modify the ContentReader component to maximize the image display area by adjusting the spacing and font sizes.
+
+I've made several adjustments to maximize the image display area and create a more compact interface:
+
+1. Reduced header font sizes to text-xs
+2. Made all buttons smaller (height: h-8) and reduced their font size
+3. Reduced padding in card content areas
+4. Increased the maximum height of the image to 70vh (70% of the viewport height)
+5. Made tab text smaller
+6. Reduced spacing between elements
+7. Made the text content slightly smaller
+
+These changes will make the interface more compact while giving more space to the actual content, especially images. The image will now scale up to 70% of your viewport height while maintaining its aspect ratio.
+
+
+
+
