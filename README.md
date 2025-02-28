@@ -164,3 +164,8 @@ A simple web application for instantly sharing text and images between devices o
 # 07-realtime_text_share_websocket
 
 Update: This content sharing app allows real-time synchronization of text and images across multiple devices through WebSocket connections. When content is shared from one device, it's instantly broadcasted to all other connected clients, with a feature that prompts users to copy text to their clipboard when returning to the app.
+
+# 08-bible_study_app
+
+The Bible Study Application is an interactive tool that lets users read the King James Version Bible while asking questions about the text they're reading. The app features a React frontend with an intuitive interface for navigating books and chapters, paired with an Express backend server that connects to a local Ollama instance for AI-powered scripture insights. Users can seamlessly navigate through biblical text, ask questions using keyboard shortcuts (Enter to send, Shift+Enter for new lines), and receive contextually relevant answers that maintain conversation history.
+
