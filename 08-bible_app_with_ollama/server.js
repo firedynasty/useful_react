@@ -27,6 +27,34 @@ app.use((req, res, next) => {
   next();
 });
 
+// Enhanced logging middleware with full response capture
+app.use((req, res, next) => {
+  const start = Date.now();
+  console.log(`[${new Date().toISOString()}] ${req.method} ${req.url} - Request received`);
+  
+  // Capture the original res.json function
+  const originalJson = res.json;
+  
+  // Override the json method to log responses
+  res.json = function(data) {
+    const duration = Date.now() - start;
+    console.log(`[${new Date().toISOString()}] ${req.method} ${req.url} - Response sent (${duration}ms)`);
+    
+    // For Ollama responses, log the full response
+    if (req.url === '/api/ask-query' && data.reply) {
+      console.log('\n========== OLLAMA FULL RESPONSE ==========');
+      console.log(`Length of response: ${data.reply.length} characters`);
+      console.log('Response content:');
+      console.log(data.reply); // Log the full response
+      console.log('==========================================\n');
+    }
+    
+    return originalJson.call(this, data);
+  };
+  
+  next();
+});
+
 // Serve static files from the build directory (when deploying)
 if (process.env.NODE_ENV === 'production') {
   app.use(express.static(path.join(__dirname, 'build')));
@@ -37,7 +65,7 @@ app.get('/api/health', (req, res) => {
   res.json({ status: 'ok', message: 'Server is running!' });
 });
 
-// Handle Ollama requests
+// Handle Ollama requests with improved logging
 app.post('/api/ask-query', async (req, res) => {
   const { query } = req.body;
 
@@ -46,8 +74,14 @@ app.post('/api/ask-query', async (req, res) => {
   }
 
   try {
-    console.log('Querying Ollama with:', query);
-    console.log('Attempting to connect to Ollama at: http://127.0.0.1:11434/api/chat');
+    console.log('\n========== OLLAMA REQUEST ==========');
+    console.log('Query sent to Ollama:');
+    console.log(query); // Log the full query
+    console.log('Timestamp:', new Date().toISOString());
+    console.log('Connecting to Ollama at: http://127.0.0.1:11434/api/chat');
+    console.log('====================================\n');
+    
+    const startTime = Date.now();
     
     // Use fetch to directly call the Ollama API
     // Using 127.0.0.1 explicitly instead of localhost
@@ -62,8 +96,11 @@ app.post('/api/ask-query', async (req, res) => {
         stream: false
       }),
       // Add a timeout to fail faster if connection issues persist
-      timeout: 10000
+      timeout: 60000
     });
+
+    const endTime = Date.now();
+    console.log(`Ollama response time: ${endTime - startTime}ms`);
 
     if (!response.ok) {
       const errorText = await response.text();
@@ -73,7 +110,11 @@ app.post('/api/ask-query', async (req, res) => {
     }
 
     const data = await response.json();
-    console.log('Received response from Ollama');
+    
+    console.log('\n========== OLLAMA RESPONSE RECEIVED ==========');
+    console.log('Response received at:', new Date().toISOString());
+    console.log('Total processing time:', Date.now() - startTime, 'ms');
+    console.log('==============================================\n');
     
     // Check if the response has the expected structure
     if (!data.message || !data.message.content) {
@@ -86,10 +127,12 @@ app.post('/api/ask-query', async (req, res) => {
     
     res.json({ reply: data.message.content });
   } catch (error) {
-    console.error('Ollama API error:', error);
-    console.error('Error name:', error.name);
+    console.error('\n========== OLLAMA ERROR ==========');
+    console.error('Error type:', error.name);
     console.error('Error code:', error.code);
     console.error('Error message:', error.message);
+    console.error('Error stack:', error.stack);
+    console.error('==================================\n');
     
     // Provide different error messages based on error types
     if (error.code === 'ECONNREFUSED') {
@@ -140,6 +183,12 @@ app.get('/api/test-ollama', async (req, res) => {
     }
 
     const data = await response.json();
+    
+    // Log full test response too
+    console.log('\n========== OLLAMA TEST RESPONSE ==========');
+    console.log(data.message.content);
+    console.log('=========================================\n');
+    
     res.json({ 
       status: 'ok', 
       message: 'Successfully connected to Ollama',
